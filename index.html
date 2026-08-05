@@ -102,7 +102,7 @@
   <div class="card grid-2" id="summary">
     <div class="stat-box">
       <div class="stat-val" id="szStat">0/0</div>
-      <div class="stat-lbl">Scoring Zone (<=100m)</div>
+      <div class="stat-lbl">Scoring Zone (<=110yd)</div>
     </div>
     <div class="stat-box">
       <div class="stat-val" id="d3Stat">0/0</div>
@@ -120,12 +120,12 @@
     </button>
 
     <button class="toggle-btn" id="d3Btn" onclick="toggleStat('downInThree')">
-      <span>Down in 3 from <=100m?</span>
+      <span>Down in 3 from <=110yd?</span>
       <span id="d3Status">❌</span>
     </button>
 
     <button class="toggle-btn" id="spBtn" onclick="toggleStat('madeShortPutt')">
-      <span>Made all putts < 1.2m?</span>
+      <span>Made all putts < 4ft?</span>
       <span id="spStatus">❌</span>
     </button>
 
@@ -194,7 +194,6 @@
       document.getElementById('holeLabel').innerText = `Hole ${currentHole}`;
       const data = roundData[currentHole];
 
-      // Update Toggles
       const setBtn = (id, statusId, val) => {
         const btn = document.getElementById(id);
         const status = document.getElementById(statusId);
@@ -214,7 +213,6 @@
       document.getElementById('penCount').innerText = data.penalties;
       document.getElementById('puttCount').innerText = data.putts;
 
-      // Calculate Stats
       let szCount = 0, d3Count = 0;
       for (let i = 1; i <= 18; i++) {
         if (roundData[i].scoringZone) szCount++;
