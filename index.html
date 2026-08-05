@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Scoring Method Tracker</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root {
+      --bg: #121820;
+      --card: #1e2632;
+      --accent: #10b981;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --danger: #ef4444;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 1.2rem; margin: 0; color: var(--accent); }
+    .nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid #374151;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-box {
+      background: #151c24;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.4rem; font-weight: bold; color: var(--accent); }
+    .stat-lbl { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .toggle-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #151c24;
+      border: 1px solid #374151;
+      border-radius: 8px;
+    }
+    .toggle-btn.selected {
+      border-color: var(--accent);
+      background: rgba(16, 185, 129, 0.15);
+    }
+    .counter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #151c24;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+    .counter-btn { width: 36px; height: 36px; font-size: 1.2rem; padding: 0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Scoring Method</h1>
+    <div class="nav">
+      <button id="prevBtn" onclick="changeHole(-1)">←</button>
+      <span id="holeLabel" style="font-weight: bold;">Hole 1</span>
+      <button id="nextBtn" onclick="changeHole(1)">→</button>
+    </div>
+  </header>
+
+  <!-- Summary Card -->
+  <div class="card grid-2" id="summary">
+    <div class="stat-box">
+      <div class="stat-val" id="szStat">0/0</div>
+      <div class="stat-lbl">Scoring Zone (<=100m)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="d3Stat">0/0</div>
+      <div class="stat-lbl">Down in 3</div>
+    </div>
+  </div>
+
+  <!-- Entry Card -->
+  <div class="card">
+    <div style="font-weight: 600; margin-bottom: 12px; color: var(--muted);">HOLE TRACKING</div>
+    
+    <button class="toggle-btn" id="szBtn" onclick="toggleStat('scoringZone')">
+      <span>Entered Scoring Zone in Reg?</span>
+      <span id="szStatus">❌</span>
+    </button>
+
+    <button class="toggle-btn" id="d3Btn" onclick="toggleStat('downInThree')">
+      <span>Down in 3 from <=100m?</span>
+      <span id="d3Status">❌</span>
+    </button>
+
+    <button class="toggle-btn" id="spBtn" onclick="toggleStat('madeShortPutt')">
+      <span>Made all putts < 1.2m?</span>
+      <span id="spStatus">❌</span>
+    </button>
+
+    <div class="counter">
+      <span>Penalties / OB</span>
+      <div>
+        <button class="counter-btn" onclick="updateCount('penalties', -1)">-</button>
+        <span id="penCount" style="margin: 0 12px; font-weight: bold;">0</span>
+        <button class="counter-btn" onclick="updateCount('penalties', 1)">+</button>
+      </div>
+    </div>
+
+    <div class="counter">
+      <span>Total Putts</span>
+      <div>
+        <button class="counter-btn" onclick="updateCount('putts', -1)">-</button>
+        <span id="puttCount" style="margin: 0 12px; font-weight: bold;">2</span>
+        <button class="counter-btn" onclick="updateCount('putts', 1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <button onclick="resetRound()" style="width: 100%; color: var(--danger); border-color: var(--danger); background: transparent;">Reset Round</button>
+
+  <script>
+    let currentHole = 1;
+    let roundData = JSON.parse(localStorage.getItem('golfRoundData')) || createEmptyRound();
+
+    function createEmptyRound() {
+      const holes = {};
+      for (let i = 1; i <= 18; i++) {
+        holes[i] = { scoringZone: false, downInThree: false, madeShortPutt: true, penalties: 0, putts: 2 };
+      }
+      return holes;
+    }
+
+    function save() {
+      localStorage.setItem('golfRoundData', JSON.stringify(roundData));
+      render();
+    }
+
+    function changeHole(delta) {
+      currentHole = Math.max(1, Math.min(18, currentHole + delta));
+      render();
+    }
+
+    function toggleStat(key) {
+      roundData[currentHole][key] = !roundData[currentHole][key];
+      save();
+    }
+
+    function updateCount(key, delta) {
+      roundData[currentHole][key] = Math.max(0, roundData[currentHole][key] + delta);
+      save();
+    }
+
+    function resetRound() {
+      if (confirm("Reset all 18 holes?")) {
+        roundData = createEmptyRound();
+        currentHole = 1;
+        save();
+      }
+    }
+
+    function render() {
+      document.getElementById('holeLabel').innerText = `Hole ${currentHole}`;
+      const data = roundData[currentHole];
+
+      // Update Toggles
+      const setBtn = (id, statusId, val) => {
+        const btn = document.getElementById(id);
+        const status = document.getElementById(statusId);
+        if (val) {
+          btn.classList.add('selected');
+          status.innerText = '✔️';
+        } else {
+          btn.classList.remove('selected');
+          status.innerText = '❌';
+        }
+      };
+
+      setBtn('szBtn', 'szStatus', data.scoringZone);
+      setBtn('d3Btn', 'd3Status', data.downInThree);
+      setBtn('spBtn', 'spStatus', data.madeShortPutt);
+
+      document.getElementById('penCount').innerText = data.penalties;
+      document.getElementById('puttCount').innerText = data.putts;
+
+      // Calculate Stats
+      let szCount = 0, d3Count = 0;
+      for (let i = 1; i <= 18; i++) {
+        if (roundData[i].scoringZone) szCount++;
+        if (roundData[i].downInThree) d3Count++;
+      }
+      document.getElementById('szStat').innerText = `${szCount}/18`;
+      document.getElementById('d3Stat').innerText = `${d3Count}/18`;
+    }
+
+    render();
+  </script>
+</body>
+</html>
