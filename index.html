@@ -14,6 +14,9 @@
       --text: #f3f4f6;
       --muted: #9ca3af;
       --danger: #ef4444;
+      --gear1: #3b82f6; /* Blue - Defensive */
+      --gear2: #f59e0b; /* Amber - Standard */
+      --gear3: #ef4444; /* Red - Attack */
     }
     body {
       margin: 0;
@@ -44,7 +47,6 @@
       font-weight: 600;
       font-size: 0.9rem;
     }
-    button.active { background: var(--accent); color: #000; border-color: var(--accent); }
     .card {
       background: var(--card);
       border-radius: 12px;
@@ -60,6 +62,42 @@
     }
     .stat-val { font-size: 1.4rem; font-weight: bold; color: var(--accent); }
     .stat-lbl { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    
+    /* Gear Selector Styling */
+    .gear-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .gear-btn {
+      flex: 1;
+      padding: 10px 4px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #151c24;
+      color: var(--muted);
+      font-weight: bold;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    .gear-btn.g1 { color: var(--gear1); }
+    .gear-btn.g2 { color: var(--gear2); }
+    .gear-btn.g3 { color: var(--gear3); }
+    
+    .gear-btn.active.g1 { background: var(--gear1); color: #fff; border-color: var(--gear1); }
+    .gear-btn.active.g2 { background: var(--gear2); color: #000; border-color: var(--gear2); }
+    .gear-btn.active.g3 { background: var(--gear3); color: #fff; border-color: var(--gear3); }
+
+    .gear-rule {
+      background: #151c24;
+      border-left: 4px solid var(--accent);
+      padding: 10px 12px;
+      border-radius: 0 8px 8px 0;
+      margin-top: 12px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
     .toggle-btn {
       width: 100%;
       padding: 12px;
@@ -85,6 +123,19 @@
       margin-top: 8px;
     }
     .counter-btn { width: 36px; height: 36px; font-size: 1.2rem; padding: 0; }
+
+    /* Modal / Cheat Sheet Drawer */
+    .rules-drawer {
+      display: none;
+      background: #151c24;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    .rules-drawer h3 { margin: 8px 0 4px 0; font-size: 0.85rem; }
   </style>
 </head>
 <body>
@@ -102,7 +153,7 @@
   <div class="card grid-2" id="summary">
     <div class="stat-box">
       <div class="stat-val" id="szStat">0/0</div>
-      <div class="stat-lbl">Scoring Zone (<=110yd)</div>
+      <div class="stat-lbl">Scoring Zone (<=100yd)</div>
     </div>
     <div class="stat-box">
       <div class="stat-val" id="d3Stat">0/0</div>
@@ -110,9 +161,40 @@
     </div>
   </div>
 
-  <!-- Entry Card -->
+  <!-- Strategy Gear & Rules Card -->
   <div class="card">
-    <div style="font-weight: 600; margin-bottom: 12px; color: var(--muted);">HOLE TRACKING</div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-weight: 600; color: var(--muted); font-size: 0.8rem;">STRATEGY GEAR</span>
+      <button onclick="toggleReference()" style="padding: 2px 8px; font-size: 0.75rem;">Rules Reference</button>
+    </div>
+
+    <div class="gear-group">
+      <button class="gear-btn g1" id="g1Btn" onclick="setGear(1)">Gear 1 (Defend)</button>
+      <button class="gear-btn g2" id="g2Btn" onclick="setGear(2)">Gear 2 (Standard)</button>
+      <button class="gear-btn g3" id="g3Btn" onclick="setGear(3)">Gear 3 (Attack)</button>
+    </div>
+
+    <div class="gear-rule" id="gearRuleText"></div>
+
+    <!-- Collapsible Reference Manual -->
+    <div class="rules-drawer" id="refDrawer">
+      <h3 style="color: var(--gear1);">🛡️ Gear 1: Defensive / Survival</h3>
+      <div>• <b>When:</b> Tough index hole, poor lie, out-of-position tee shot, or heavy hazard.</div>
+      <div>• <b>Rule:</b> Aim for middle of green or widest fairway section. Never attack a tucked pin. Goal is taking double bogey completely off the card.</div>
+      
+      <h3 style="color: var(--gear2);">🎯 Gear 2: Standard Scoring</h3>
+      <div>• <b>When:</b> Normal fairway position, standard approach distance.</div>
+      <div>• <b>Rule:</b> Play to smart targets and yardage numbers. Priority is entering the Scoring Zone (&le;100yd) in regulation and getting down in 3.</div>
+      
+      <h3 style="color: var(--gear3);">🚀 Gear 3: Attack / Green Light</h3>
+      <div>• <b>When:</b> Short par 4 tee shot, reachable par 5, or wedge in hand from fairway.</div>
+      <div>• <b>Rule:</b> Green light to pin-seek safe flags. Aggressive play allowed only when risk of penalty is minimal.</div>
+    </div>
+  </div>
+
+  <!-- Hole Tracking Card -->
+  <div class="card">
+    <div style="font-weight: 600; margin-bottom: 8px; color: var(--muted); font-size: 0.8rem;">HOLE TRACKING</div>
     
     <button class="toggle-btn" id="szBtn" onclick="toggleStat('scoringZone')">
       <span>Entered Scoring Zone in Reg?</span>
@@ -120,7 +202,7 @@
     </button>
 
     <button class="toggle-btn" id="d3Btn" onclick="toggleStat('downInThree')">
-      <span>Down in 3 from <=110yd?</span>
+      <span>Down in 3 from <=100yd?</span>
       <span id="d3Status">❌</span>
     </button>
 
@@ -154,10 +236,16 @@
     let currentHole = 1;
     let roundData = JSON.parse(localStorage.getItem('golfRoundData')) || createEmptyRound();
 
+    const gearRules = {
+      1: "🛡️ <b>Gear 1 Rule:</b> Play defensive. Target center of green or safe fairway layup. Zero flag hunting. Eliminates double bogeys.",
+      2: "🎯 <b>Gear 2 Rule:</b> Play standard strategy. Work to hit the Scoring Zone (&le;100yd) in regulation & get down in 3.",
+      3: "🚀 <b>Gear 3 Rule:</b> Attack mode. Green light to target safe flags on wedges/short irons or take aggressive lines off the tee."
+    };
+
     function createEmptyRound() {
       const holes = {};
       for (let i = 1; i <= 18; i++) {
-        holes[i] = { scoringZone: false, downInThree: false, madeShortPutt: true, penalties: 0, putts: 2 };
+        holes[i] = { gear: 2, scoringZone: false, downInThree: false, madeShortPutt: true, penalties: 0, putts: 2 };
       }
       return holes;
     }
@@ -172,6 +260,11 @@
       render();
     }
 
+    function setGear(gearNum) {
+      roundData[currentHole].gear = gearNum;
+      save();
+    }
+
     function toggleStat(key) {
       roundData[currentHole][key] = !roundData[currentHole][key];
       save();
@@ -182,8 +275,13 @@
       save();
     }
 
+    function toggleReference() {
+      const drawer = document.getElementById('refDrawer');
+      drawer.style.display = drawer.style.display === 'block' ? 'none' : 'block';
+    }
+
     function resetRound() {
-      if (confirm("Reset all 18 holes?")) {
+      if (confirm("Reset current 18 holes?")) {
         roundData = createEmptyRound();
         currentHole = 1;
         save();
@@ -193,6 +291,16 @@
     function render() {
       document.getElementById('holeLabel').innerText = `Hole ${currentHole}`;
       const data = roundData[currentHole];
+
+      [1, 2, 3].forEach(g => {
+        const btn = document.getElementById(`g${g}Btn`);
+        if (data.gear === g) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      const ruleElem = document.getElementById('gearRuleText');
+      ruleElem.innerHTML = gearRules[data.gear];
+      ruleElem.style.borderColor = data.gear === 1 ? 'var(--gear1)' : data.gear === 2 ? 'var(--gear2)' : 'var(--gear3)';
 
       const setBtn = (id, statusId, val) => {
         const btn = document.getElementById(id);
